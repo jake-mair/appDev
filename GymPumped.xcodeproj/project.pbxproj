@@ -6,6 +6,10 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		69007FFA2E579BA800BA7D7A /* GoogleService-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = 69007FF92E579BA800BA7D7A /* GoogleService-Info.plist */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXContainerItemProxy section */
 		69007FDB2E5798F500BA7D7A /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -27,6 +31,7 @@
 		69007FCA2E5798F400BA7D7A /* GymPumped.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = GymPumped.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		69007FDA2E5798F500BA7D7A /* GymPumpedTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = GymPumpedTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		69007FE42E5798F500BA7D7A /* GymPumpedUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = GymPumpedUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		69007FF92E579BA800BA7D7A /* GoogleService-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "GoogleService-Info.plist"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -79,6 +84,7 @@
 				69007FDD2E5798F500BA7D7A /* GymPumpedTests */,
 				69007FE72E5798F500BA7D7A /* GymPumpedUITests */,
 				69007FCB2E5798F400BA7D7A /* Products */,
+				69007FF92E579BA800BA7D7A /* GoogleService-Info.plist */,
 			);
 			sourceTree = "<group>";
 		};
@@ -212,6 +218,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				69007FFA2E579BA800BA7D7A /* GoogleService-Info.plist in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
