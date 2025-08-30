@@ -25,7 +25,7 @@ struct ProfileView: View {
                             .fontWeight(.bold)
                             .foregroundStyle(
                                 LinearGradient(
-                                    colors: [.cyan, .purpleGradientStart],
+                                    colors: [.cyan, .red],
                                     startPoint: .leading,
                                     endPoint: .trailing
                                 )

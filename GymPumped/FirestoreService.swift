@@ -62,3 +62,84 @@ class FirestoreService {
         }
     }
 }
+
+// New Structs for Completed Workouts
+struct CompletedWorkout: Codable {
+    var userId: String
+    var date: String
+    var completed: Bool
+    var exercises: [CompletedExercise]
+    var createdAt: Timestamp
+}
+
+struct CompletedExercise: Codable {
+    var name: String
+    var sets: [CompletedSet]
+}
+
+struct CompletedSet: Codable {
+    var weight: Int
+    var reps: Int
+    var comment: String?
+}
+
+// New Structs for Workout History
+struct WorkoutHistory: Codable {
+    var userId: String
+    var date: String
+    var exerciseName: String
+    var weight: Int
+    var reps: Int
+    var setNumber: Int
+    var totalSets: Int
+    var comment: String?
+    var createdAt: Timestamp
+}
+
+
+extension FirestoreService {
+
+    // MARK: - Completed Workouts
+
+    func saveCompletedWorkout(userId: String, date: String, workoutData: CompletedWorkout) async throws {
+        let workoutRef = db.collection("completedWorkouts").document("\(userId)_\(date)")
+        try await workoutRef.setData(from: workoutData)
+    }
+    
+    func getCompletedWorkouts(userId: String) async throws -> [CompletedWorkout] {
+        let workoutsQuery = db.collection("completedWorkouts")
+            .whereField("userId", isEqualTo: userId)
+        let querySnapshot = try await workoutsQuery.getDocuments()
+        
+        return querySnapshot.documents.compactMap { document in
+            try? document.data(as: CompletedWorkout.self)
+        }
+    }
+
+    func deleteCompletedWorkout(userId: String, date: String) async throws {
+        let workoutRef = db.collection("completedWorkouts").document("\(userId)_\(date)")
+        try await workoutRef.delete()
+    }
+    
+    // MARK: - Workout History
+
+    func saveWorkoutHistoryEntry(userId: String, entry: WorkoutHistory) async throws {
+        let historyRef = db.collection("workoutHistory").document()
+        try await historyRef.setData(from: entry)
+    }
+
+    func deleteUserWorkoutHistory(userId: String, date: String) async throws {
+        let historyQuery = db.collection("workoutHistory")
+            .whereField("userId", isEqualTo: userId)
+            .whereField("date", isEqualTo: date)
+        
+        let querySnapshot = try await historyQuery.getDocuments()
+        
+        let batch = db.batch()
+        for document in querySnapshot.documents {
+            batch.deleteDocument(document.reference)
+        }
+        
+        try await batch.commit()
+    }
+}

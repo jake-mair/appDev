@@ -6,11 +6,12 @@
 import SwiftUI
 import FirebaseAuth
 
+// MARK: - WorkoutSplitsView
 struct WorkoutSplitsView: View {
     @EnvironmentObject var authService: AuthService
-    
+
     @State private var splits: [WorkoutSplit] = []
-    @State private var isLoading = true
+    @State private var isLoading = false
     @State private var showCreateModal = false
 
     private let firestoreService = FirestoreService()
@@ -18,47 +19,64 @@ struct WorkoutSplitsView: View {
     var body: some View {
         NavigationView {
             VStack {
-                if isLoading {
-                    ProgressView()
-                } else if splits.isEmpty {
-                    VStack(spacing: 16) {
-                        Image(systemName: "dumbbell.fill")
-                            .font(.system(size: 60))
-                            .foregroundColor(.gray)
-                        Text("No Workout Splits")
-                            .font(.title2)
-                            .foregroundColor(.white)
-                        Text("Create your first workout split to get started.")
-                            .foregroundColor(.gray)
-                    }
-                } else {
-                    List {
-                        ForEach(splits) { split in
-                            VStack(alignment: .leading) {
-                                Text(split.name)
-                                    .font(.headline)
-                                Text("\(split.startDate) - \(split.endDate)")
-                                    .font(.subheadline)
-                                    .foregroundColor(.gray)
-                            }
-                        }
-                        .listRowBackground(Color.clear) // Makes the row backgrounds transparent
-                    }
-                    .listStyle(InsetGroupedListStyle())
-                    .background(Color.clear) // Makes the List background transparent
-                }
-            }
-            .navigationTitle("Workout Splits")
-            .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
+                // Custom Header with Gradient
+                HStack {
+                    Text("Workout Splits")
+                        .font(.largeTitle)
+                        .fontWeight(.bold)
+                        .foregroundStyle(
+                            LinearGradient(
+                                colors: [Color.neonCyan, Color.neonPurple],
+                                startPoint: .leading,
+                                endPoint: .trailing
+                            )
+                        )
+                    Spacer()
+                    
                     Button(action: {
                         showCreateModal = true
                     }) {
-                        Label("Create Split", systemImage: "plus")
-                            .foregroundColor(.pink)
+                        HStack {
+                            Image(systemName: "plus")
+                            Text("Create Split")
+                        }
+                        .padding(.vertical, 8)
+                        .padding(.horizontal, 12)
+                        .background(LinearGradient.accentGradient)
+                        .foregroundColor(.white)
+                        .cornerRadius(10)
                     }
                 }
+                .padding()
+                
+                if isLoading {
+                    ProgressView()
+                } else if splits.isEmpty {
+                    EmptySplitsView()
+                } else {
+                    List {
+                        ForEach(splits) { split in
+                            WorkoutSplitCard(split: split)
+                                .listRowBackground(Color.clear)
+                                .listRowSeparator(.hidden)
+                        }
+                    }
+                    .listStyle(.inset)
+                    .scrollContentBackground(.hidden)
+                }
             }
+            // .navigationTitle("Workout Splits")
+//            .toolbar {
+//                ToolbarItem(placement: .navigationBarTrailing) {
+//                    Button(action: {
+//                        showCreateModal = true
+//                    }) {
+//                        Label("Create Split", systemImage: "plus")
+//                            .foregroundColor(.pink)
+//                    }
+//                }
+//            }
+            .background(Color.clear)
         }
         .onAppear {
             fetchSplits()
@@ -92,4 +110,121 @@ struct WorkoutSplitsView: View {
             isLoading = false
         }
     }
+}
+
+// MARK: - WorkoutSplitCard
+struct WorkoutSplitCard: View {
+    var split: WorkoutSplit
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            // Header: Name, Status, and Actions
+            HStack {
+                Text(split.name)
+                    .font(.title2)
+                    .fontWeight(.bold)
+                    .foregroundColor(.white)
+                
+                Spacer()
+                
+                // Status Badge
+                Text(split.isActive ? "Active" : "Planned")
+                    .font(.caption)
+                    .fontWeight(.semibold)
+                    .foregroundColor(.white)
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 5)
+                    .background(split.isActive ? Color.green : Color.blue)
+                    .cornerRadius(20)
+                
+                // Action Buttons
+                HStack(spacing: 15) {
+                    Button(action: {
+                        // TODO: Implement edit functionality
+                    }) {
+                        Image(systemName: "pencil")
+                            .foregroundColor(.gray)
+                    }
+                    
+                    Button(action: {
+                        // TODO: Implement delete functionality
+                    }) {
+                        Image(systemName: "trash")
+                            .foregroundColor(.red)
+                    }
+                }
+            }
+            
+            // Date Range
+            HStack(spacing: 8) {
+                Image(systemName: "calendar")
+                    .foregroundColor(.gray)
+                Text("\(split.startDate) - \(split.endDate)")
+                    .font(.subheadline)
+                    .foregroundColor(.gray)
+            }
+            
+            // Weekly Schedule
+            VStack(alignment: .leading, spacing: 8) {
+                HStack(spacing: 8) {
+                    Image(systemName: "clock")
+                        .foregroundColor(.gray)
+                    Text("Weekly Schedule")
+                        .font(.subheadline)
+                        .foregroundColor(.gray)
+                }
+                
+                HStack(spacing: 10) {
+                    ForEach(["MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"], id: \.self) { day in
+                        VStack(spacing: 4) {
+                            Text(day)
+                                .font(.caption)
+                                .fontWeight(.bold)
+                                .foregroundColor(.gray)
+                            
+                            // Placeholder for workout type
+                            RoundedRectangle(cornerRadius: 8)
+                                .fill(Color.cardBackground)
+                                .frame(width: 40, height: 40)
+                                .overlay(
+                                    VStack(spacing: 2) {
+                                        Text("R..")
+                                            .font(.caption)
+                                            .foregroundColor(.white)
+                                        Image(systemName: "zzz")
+                                            .font(.caption)
+                                            .foregroundColor(.gray)
+                                    }
+                                )
+                        }
+                    }
+                }
+            }
+        }
+        .padding()
+        .background(Color.cardBackground)
+        .cornerRadius(12)
+    }
+}
+
+// MARK: - EmptySplitsView
+struct EmptySplitsView: View {
+    var body: some View {
+        VStack(spacing: 16) {
+            Image(systemName: "dumbbell.fill")
+                .font(.system(size: 60))
+                .foregroundColor(.gray)
+            Text("No Workout Splits")
+                .font(.title2)
+                .foregroundColor(.white)
+            Text("Create your first workout split to get started.")
+                .foregroundColor(.gray)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+}
+
+#Preview {
+    WorkoutSplitsView()
+        .environmentObject(AuthService())
 }
