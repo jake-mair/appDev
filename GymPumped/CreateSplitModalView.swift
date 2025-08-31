@@ -16,58 +16,162 @@ struct CreateSplitModalView: View {
     @State private var startDate: Date = Date()
     @State private var endDate: Date = Calendar.current.date(byAdding: .day, value: 7, to: Date()) ?? Date()
     @State private var schedule: [String: String] = [
-        "monday": "Rest",
-        "tuesday": "Rest",
-        "wednesday": "Rest",
-        "thursday": "Rest",
-        "friday": "Rest",
-        "saturday": "Rest",
-        "sunday": "Rest"
+        "monday": "Select workout",
+        "tuesday": "Select workout",
+        "wednesday": "Select workout",
+        "thursday": "Select workout",
+        "friday": "Select workout",
+        "saturday": "Select workout",
+        "sunday": "Select workout"
     ]
     
     let daysOfWeek = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"]
-    let workoutOptions = ["Rest", "Push", "Pull", "Legs", "Upper", "Lower", "Full Body", "Cardio"]
+    let workoutOptions = ["Select workout", "Rest", "Push", "Pull", "Legs", "Upper", "Lower", "Full Body", "Cardio"]
 
     var body: some View {
-        NavigationView {
-            Form {
-                Section(header: Text("Split Details")) {
-                    TextField("Split Name", text: $splitName)
-                    DatePicker("Start Date", selection: $startDate, displayedComponents: .date)
-                    DatePicker("End Date", selection: $endDate, displayedComponents: .date)
+        VStack(spacing: 20) {
+            // Modal Header
+            HStack {
+                Text("Create Workout Split")
+                    .font(.headline)
+                    .foregroundColor(.white)
+                Spacer()
+                Button(action: {
+                    dismiss()
+                }) {
+                    Image(systemName: "xmark")
+                        .foregroundColor(.gray)
                 }
-
-                Section(header: Text("Weekly Schedule")) {
-                    ForEach(daysOfWeek, id: \.self) { day in
-                        Picker(day.capitalized, selection: $schedule[day]) {
-                            ForEach(workoutOptions, id: \.self) { workout in
-                                Text(workout)
+            }
+            .padding(.vertical, 8)
+            .padding(.horizontal, 8)
+            .padding(.bottom, 10)
+            
+            ScrollView {
+                VStack(alignment: .leading, spacing: 20) {
+                    // Split Name Input
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Split Name")
+                            .font(.subheadline)
+                            .foregroundColor(.gray)
+                        TextField("e.g., PPL - Summer 2025", text: $splitName)
+                            .padding()
+                            .background(Color.cardBackground)
+                            .cornerRadius(8)
+                            .foregroundColor(.white)
+                    }
+                    
+                    // Start and End Date Inputs
+                    HStack(spacing: 16) {
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("Start Date")
+                                .font(.subheadline)
+                                .foregroundColor(.gray)
+                            DatePicker("", selection: $startDate, displayedComponents: .date)
+                                .labelsHidden()
+                                .padding(.vertical, 8)
+                                .padding(.horizontal, 12)
+                                .background(Color.cardBackground)
+                                .cornerRadius(8)
+                                .accentColor(.white)
+                            
+                        }
+                        
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("End Date")
+                                .font(.subheadline)
+                                .foregroundColor(.gray)
+                            DatePicker("", selection: $endDate, displayedComponents: .date)
+                                .labelsHidden()
+                                .padding(.vertical, 8)
+                                .padding(.horizontal, 12)
+                                .background(Color.cardBackground)
+                                .cornerRadius(8)
+                                .accentColor(.white)
+                        }
+                    }
+                    
+                    // Weekly Schedule
+                    VStack(alignment: .leading, spacing: 12) {
+                        Text("Weekly Schedule")
+                            .font(.subheadline)
+                            .foregroundColor(.gray)
+                        
+                        ForEach(daysOfWeek, id: \.self) { day in
+                            HStack {
+                                Text(day.capitalized)
+                                    .frame(width: 80, alignment: .leading)
+                                    .foregroundColor(.white)
+                                
+                                Spacer()
+                                
+                                // This button now has a menu attached to it
+                                Menu {
+                                    ForEach(workoutOptions, id: \.self) { workout in
+                                        Button(workout) {
+                                            schedule[day] = workout
+                                        }
+                                    }
+                                } label: {
+                                    HStack {
+                                        Text(schedule[day] ?? "Select workout")
+                                            .foregroundColor(.white)
+                                        Spacer()
+                                        Image(systemName: "chevron.up.chevron.down")
+                                            .font(.caption)
+                                            .foregroundColor(.white)
+                                    }
+                                    .padding(.horizontal)
+                                    .padding(.vertical, 8)
+                                    .background(Color.cardBackground)
+                                    .cornerRadius(8)
+                                }
+                                .buttonStyle(.plain)
                             }
                         }
                     }
                 }
+            }
+            .padding(.horizontal)
+            
+            // Action Buttons
+            HStack(spacing: 16) {
+                Button("Cancel") {
+                    dismiss()
+                }
+                .frame(maxWidth: .infinity)
+                .padding()
+                .background(Color.cardBackground)
+                .foregroundColor(.white)
+                .cornerRadius(10)
                 
                 Button("Create Split") {
                     saveSplit()
                 }
                 .frame(maxWidth: .infinity)
                 .padding()
-                .background(Color.purple)
+                .background(LinearGradient.accentGradient)
                 .foregroundColor(.white)
                 .cornerRadius(10)
             }
-            .navigationTitle("Create Workout Split")
-            .navigationBarItems(leading: Button("Cancel") {
-                dismiss()
-            })
+            .padding(.horizontal)
+            .padding(.bottom)
         }
+        .background(Color.darkBackground)
+        .cornerRadius(15)
+        .overlay(
+            RoundedRectangle(cornerRadius: CGFloat(15))
+                .stroke(Color.purple, lineWidth: 2)
+            
+        )
+            
+        
     }
 
     private func saveSplit() {
-        guard let userId = authService.currentUser?.uid else { return }
 
         let newSchedule: [String: WorkoutDay] = schedule.mapValues { workoutType in
-            WorkoutDay(workoutType: workoutType, exercises: [])
+            WorkoutDay(workoutType: workoutType == "Select workout" ? "Rest" : workoutType, exercises: [])
         }
         
         let newSplit = WorkoutSplit(

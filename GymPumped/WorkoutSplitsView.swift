@@ -225,23 +225,32 @@ struct WorkoutSplitCard: View {
                         .foregroundColor(.gray)
                 }
                 
+                // ADD THIS NEW HSTACK
                 HStack(spacing: 10) {
-                    ForEach(["MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"], id: \.self) { day in
+                    ForEach(["MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"], id: \.self) { dayAbbr in
+                        // Use the map to get the correct key for the schedule dictionary
+                        let dayKey = dayKeyMap[dayAbbr] ?? ""
+                        // Look up the workout type, defaulting to "Rest" if not found
+                        let workoutType = split.schedule[dayKey]?.workoutType ?? "Rest"
+                        
                         VStack(spacing: 4) {
-                            Text(day)
+                            Text(dayAbbr)
                                 .font(.caption)
                                 .fontWeight(.bold)
                                 .foregroundColor(.gray)
                             
                             RoundedRectangle(cornerRadius: 8)
-                                .fill(Color.cardBackground)
+                                .fill(Color.cardBackground.shadow(.inner(radius: 3, y: 3))) // Added a subtle inner shadow
                                 .frame(width: 40, height: 40)
                                 .overlay(
                                     VStack(spacing: 2) {
-                                        Text("R..")
-                                            .font(.caption)
+                                        // Use the new helper to get the abbreviation
+                                        Text(abbreviation(for: workoutType))
+                                            .font(.system(size: 9, weight: .bold))
                                             .foregroundColor(.white)
-                                        Image(systemName: "zzz")
+                                        
+                                        // Use the new helper to get the icon
+                                        Image(systemName: icon(for: workoutType))
                                             .font(.caption)
                                             .foregroundColor(.gray)
                                     }
@@ -254,6 +263,45 @@ struct WorkoutSplitCard: View {
         .padding()
         .background(Color.cardBackground)
         .cornerRadius(12)
+    }
+}
+
+// MARK: - WorkoutSplitCard Helpers
+private extension WorkoutSplitCard {
+    // 1. Maps the display abbreviation to the lowercase key used in your data model
+    var dayKeyMap: [String: String] {
+        [
+            "MON": "monday", "TUE": "tuesday", "WED": "wednesday",
+            "THU": "thursday", "FRI": "friday", "SAT": "saturday",
+            "SUN": "sunday"
+        ]
+    }
+
+    // 2. Creates an abbreviation for the workout type text
+    func abbreviation(for workoutType: String) -> String {
+        guard !workoutType.isEmpty else { return "N/A" }
+        if workoutType.count <= 3 {
+            return workoutType.uppercased()
+        } else if workoutType.lowercased() == "full body" {
+            return "FULL"
+        } else {
+            return String(workoutType.prefix(3)).uppercased()
+        }
+    }
+
+    // 3. Selects an SF Symbol name based on the workout type
+    func icon(for workoutType: String) -> String {
+        switch workoutType.lowercased() {
+        case "push": return "arrow.up.to.line.compact"
+        case "pull": return "arrow.down.to.line.compact"
+        case "legs": return "figure.walk"
+        case "upper": return "person.fill"
+        case "lower": return "figure.lower.body"
+        case "full body": return "figure.strengthtraining.traditional"
+        case "cardio": return "heart.fill"
+        case "rest": return "zzz"
+        default: return "questionmark.diamond"
+        }
     }
 }
 
