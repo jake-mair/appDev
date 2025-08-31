@@ -75,8 +75,7 @@ struct CreateSplitModalView: View {
             schedule: newSchedule,
             startDate: startDate.formatted(date: .numeric, time: .omitted),
             endDate: endDate.formatted(date: .numeric, time: .omitted),
-            isActive: false,
-            userId: userId
+            isActive: false
         )
         
         onSave(newSplit)

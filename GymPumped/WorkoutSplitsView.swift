@@ -11,8 +11,10 @@ struct WorkoutSplitsView: View {
     @EnvironmentObject var authService: AuthService
 
     @State private var splits: [WorkoutSplit] = []
-    @State private var isLoading = false
+    @State private var isLoading = true
     @State private var showCreateModal = false
+    @State private var actionSplit: WorkoutSplit?
+    @State private var showDeleteConfirmation = false
 
     private let firestoreService = FirestoreService()
 
@@ -48,7 +50,8 @@ struct WorkoutSplitsView: View {
                     }
                 }
                 .padding()
-                
+                // End header
+
                 if isLoading {
                     ProgressView()
                 } else if splits.isEmpty {
@@ -56,69 +59,119 @@ struct WorkoutSplitsView: View {
                 } else {
                     List {
                         ForEach(splits) { split in
-                            WorkoutSplitCard(split: split)
-                                .listRowBackground(Color.clear)
-                                .listRowSeparator(.hidden)
+                            WorkoutSplitCard(split: split,
+                            onDelete: {
+                                actionSplit = split
+                                showDeleteConfirmation = true
+                            },
+                            onStatusChange: {
+                                actionSplit = split
+                                updateSplitStatus()
+                            }
+                            )
+                            .listRowBackground(Color.clear)
+                            .listRowSeparator(.hidden)
                         }
                     }
                     .listStyle(.inset)
                     .scrollContentBackground(.hidden)
                 }
             }
-            // .navigationTitle("Workout Splits")
-//            .toolbar {
-//                ToolbarItem(placement: .navigationBarTrailing) {
-//                    Button(action: {
-//                        showCreateModal = true
-//                    }) {
-//                        Label("Create Split", systemImage: "plus")
-//                            .foregroundColor(.pink)
-//                    }
-//                }
-//            }
+            .navigationBarHidden(true)
             .background(Color.clear)
         }
-        .onAppear {
-            fetchSplits()
-        }
-        .sheet(isPresented: $showCreateModal) {
-            CreateSplitModalView(onSave: { newSplit in
-                Task {
-                    do {
-                        try await firestoreService.saveWorkoutSplit(userId: authService.currentUser!.uid, split: newSplit)
-                        fetchSplits()
-                    } catch {
-                        print("Error saving new workout split: \(error)")
-                    }
-                }
-            })
-        }
-    }
-
-    private func fetchSplits() {
-        guard let userId = authService.currentUser?.uid else { return }
-        
-        isLoading = true
-        Task {
-            do {
-                let fetchedSplits = try await firestoreService.getUserWorkoutSplits(userId: userId)
-                self.splits = fetchedSplits
-            } catch {
-                print("Error fetching workout splits: \(error)")
-                self.splits = []
+            .onAppear {
+                fetchSplits()
             }
-            isLoading = false
+            
+            .sheet(isPresented: $showCreateModal) {
+                CreateSplitModalView(onSave: { newSplit in
+                    Task {
+                        do {
+                            try await firestoreService.saveWorkoutSplit(userId: authService.currentUser!.uid, split: newSplit)
+                            fetchSplits()
+                        } catch {
+                            print("Error saving new workout split: \(error)")
+                        }
+                    }
+                })
+            }
+            
+            .alert(isPresented: $showDeleteConfirmation) {
+                Alert(
+                    title: Text("Delete Workout Split"),
+                    message: Text("Are you sure you want to delete this workout split? This action cannot be undone."),
+                    primaryButton: .destructive(Text("Delete")) {
+                        if let split = actionSplit, let id = split.id {
+                            deleteSplit(splitId: id)
+                        }
+                    },
+                    secondaryButton: .cancel()
+                )
+            }
         }
-    }
+            
+        private func fetchSplits() {
+            guard let userId = authService.currentUser?.uid else { return }
+            
+            isLoading = true
+            Task {
+                do {
+                    let fetchedSplits = try await firestoreService.getUserWorkoutSplits(userId: userId)
+                    self.splits = fetchedSplits
+                } catch {
+                    print("Error fetching workout splits: \(error)")
+                    self.splits = []
+                }
+                isLoading = false
+            }
+        }
+            
+        private func deleteSplit(splitId: String) {
+            guard let userId = authService.currentUser?.uid else { return }
+            Task {
+                do {
+                    try await firestoreService.deleteWorkoutSplit(userId: userId, splitId: splitId)
+                    fetchSplits()
+                } catch {
+                    print("Error deleting workout split: \(error)")
+                }
+            }
+        }
+            
+        private func updateSplitStatus() {
+            guard let userId = authService.currentUser?.uid, var updatedSplit = actionSplit else { return }
+            
+            if updatedSplit.isActive {
+                updatedSplit.isActive = false
+            } else if updatedSplit.isPlanned ?? false {
+                updatedSplit.isPlanned = false
+                updatedSplit.isActive = true
+            } else {
+                updatedSplit.isPlanned = true
+            }
+            
+            Task {
+                do {
+                    try await firestoreService.updateWorkoutSplit(userId: userId, split: updatedSplit)
+                    fetchSplits()
+                } catch {
+                    print("Error updating split status: \(error)")
+                }
+            }
+        }
 }
+
+
 
 // MARK: - WorkoutSplitCard
 struct WorkoutSplitCard: View {
     var split: WorkoutSplit
+    var onDelete: () -> Void
+    var onStatusChange: () -> Void
     
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            // Header: Name, Status, and Actions
             HStack {
                 Text(split.name)
                     .font(.title2)
@@ -127,35 +180,34 @@ struct WorkoutSplitCard: View {
                 
                 Spacer()
                 
-                // Status Badge
-                Text(split.isActive ? "Active" : "Planned")
+                Text(split.isActive ? "Active" : (split.isPlanned ?? false ? "Planned" : "Inactive"))
                     .font(.caption)
                     .fontWeight(.semibold)
                     .foregroundColor(.white)
                     .padding(.horizontal, 10)
                     .padding(.vertical, 5)
-                    .background(split.isActive ? Color.green : Color.blue)
+                    .background(split.isActive ? Color.green : (split.isPlanned ?? false ? Color.blue : Color.gray))
                     .cornerRadius(20)
+                    .onTapGesture {
+                        onStatusChange()
+                    }
                 
-                // Action Buttons
                 HStack(spacing: 15) {
                     Button(action: {
-                        // TODO: Implement edit functionality
+
                     }) {
                         Image(systemName: "pencil")
                             .foregroundColor(.gray)
                     }
                     
-                    Button(action: {
-                        // TODO: Implement delete functionality
-                    }) {
-                        Image(systemName: "trash")
-                            .foregroundColor(.red)
-                    }
+                    Image(systemName: "trash")
+                        .foregroundColor(.red)
+                        .onTapGesture {
+                            onDelete()
+                        }
                 }
             }
             
-            // Date Range
             HStack(spacing: 8) {
                 Image(systemName: "calendar")
                     .foregroundColor(.gray)
@@ -164,7 +216,6 @@ struct WorkoutSplitCard: View {
                     .foregroundColor(.gray)
             }
             
-            // Weekly Schedule
             VStack(alignment: .leading, spacing: 8) {
                 HStack(spacing: 8) {
                     Image(systemName: "clock")
@@ -182,7 +233,6 @@ struct WorkoutSplitCard: View {
                                 .fontWeight(.bold)
                                 .foregroundColor(.gray)
                             
-                            // Placeholder for workout type
                             RoundedRectangle(cornerRadius: 8)
                                 .fill(Color.cardBackground)
                                 .frame(width: 40, height: 40)
@@ -225,6 +275,6 @@ struct EmptySplitsView: View {
 }
 
 #Preview {
-    WorkoutSplitsView()
+    ContentView()
         .environmentObject(AuthService())
 }
